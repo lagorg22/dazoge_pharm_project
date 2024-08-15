@@ -20,12 +20,12 @@ word = 'ana'
 # av.show_items(word)
 gp = GPC(*get_inputs('gpc'))
 # print(gp.show_items(word))
-df = pd.DataFrame(columns=['Pharmacy', 'Name', 'Country', 'Price', 'Photo Source', 'Link'])
-for item_dict in gp.show_items(word):
-    df.loc[len(df)] = item_dict
-
-# print(df)
-
-df.to_excel('test1.xlsx')
+# df = pd.DataFrame(columns=['Pharmacy', 'Name', 'Country', 'Price', 'Photo Source', 'Link'])
+# for item_dict in gp.show_items(word):
+#     df.loc[len(df)] = item_dict
+#
+# # print(df)
+#
+# df.to_excel('test1.xlsx')
 
 
