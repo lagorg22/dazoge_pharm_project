@@ -1,0 +1,39 @@
+{
+  "aversi": {
+    "website": "https://www.aversi.ge/",
+    "search_box_xpath": "/html/body/div[2]/div/section[2]/div/div/div[1]/div/form/div/div/div/input[1]",
+    "photo_xpath": "/html/body/div[2]/div/section[2]/div/div[5]/div/div/div/div[1]/a/img",
+    "name_xpath": "/html/body/div[2]/div/section[2]/div/div[5]/div/div/div/div[2]/a/h5",
+    "price_xpath": "/html/body/div[2]/div/section[2]/div/div[5]/div/div/div/div[2]/a/div[1]/ins/span",
+    "link_xpath": "/html/body/div[2]/div/section[2]/div/div[5]/div/div/div/div[1]/a",
+    "country_xpath": "/html/body/div[2]/div/section[2]/div/div[5]/div/div/div/div[2]/a/div[2]/strong"
+  },
+  "gpc": {
+     "website": "https://gpc.ge/ka",
+    "search_box_xpath": "/html/body/div[1]/div[1]/div[3]/div/div/div[2]/form/input",
+    "photo_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[1]/img",
+    "name_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[2]/div[1]",
+    "price_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[4]/div[1]/div[1]",
+    "link_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a",
+    "country_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[2]/div[2]"
+  },
+  "pharmadepot": {
+     "website": "https://pharmadepot.ge/ka",
+    "search_box_xpath": "/html/body/div[1]/div[1]/div[2]/div/div/div[2]/form/input",
+    "photo_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[1]/img",
+    "name_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[2]/div[1]",
+    "price_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[4]/div[1]/div[1]",
+    "link_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a",
+    "country_xpath": "/html/body/div[2]/div/div[3]/div[3]/div[2]/div/a/div[2]/div[2]"
+  },
+  "psp":{
+     "website": "https://psp.ge/",
+    "search_box_xpath": "/html/body/div[1]/header/div[2]/div[2]/div[1]/div[1]/div/div[1]/input",
+    "photo_xpath": "/html/body/div[1]/div[1]/div/div/div/div[3]/div[2]/div/a/div[1]/div[1]/img",
+    "name_xpath": "/html/body/div[1]/div[1]/div/div/div/div[3]/div[2]/div/a/div[2]",
+    "price_xpath": "/html/body/div[1]/div[1]/div/div/div/div[3]/div[2]/div/a/div[3]/div[1]",
+    "link_xpath": "/html/body/div[1]/div[1]/div/div/div/div[3]/div[2]/div/a",
+    "country_xpath": "-"
+  }
+
+}
