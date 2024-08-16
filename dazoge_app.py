@@ -41,3 +41,6 @@ def search():
 if __name__ == '__main__':
     app.run(debug=True)
 
+# av = Aversi(*get_inputs('aversi'))
+# av_infos = av.show_items('ana')
+# print(av_infos)

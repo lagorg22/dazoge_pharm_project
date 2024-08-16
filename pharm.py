@@ -242,10 +242,28 @@ class Aversi(Pharmacy):
     def get_prices(self, wait):
         return super().get_prices(wait)
 
-    # def get_countries(self, wait):
-    #     try:
-    #         [country.text for country in
-    #          wait.until(ec.presence_of_all_elements_located((By.XPATH, self.country_xpath)))]
+    def get_countries(self, wait):
+
+        elems_xpath = '/html/body/div[2]/div/section[2]/div/div[5]/div/div'
+        valid_paths = []
+        i = 1
+        while True:
+            try:
+                curr_path = f'{elems_xpath}[{i}]'
+                elem = self.driver.find_element(By.XPATH, curr_path)
+            except:
+                break
+            valid_paths.append(curr_path)
+            i += 1
+        countries = []
+        for path in valid_paths:
+            country = ''
+            try:
+                country = self.driver.find_element(By.XPATH, f'{path}/div/div[2]/a/div[2]')
+                countries.append(country.text.replace('ქვეყანა ', ''))
+            except:
+                countries.append('-')
+        return countries
 
     def go_to_next_page(self):
         try:
