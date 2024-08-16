@@ -13,6 +13,8 @@ class Pharmacy:
     def __init__(self, website, search_box_xpath, photo_xpath,
                  name_xpath, price_xpath, country_xpath, link_xpath):
         edge_options = webdriver.EdgeOptions()
+        # edge_options.add_argument("--headless")
+        # edge_options.add_argument("--disable-gpu")
         edge_options.add_experimental_option('detach', True)
         self.driver = webdriver.Edge(options=edge_options)
         self.website = website
@@ -132,7 +134,7 @@ class Pharmadepot(Pharmacy):
                      pharmacy=self.__pharmacy, link=links[i], country=countries[i]))
 
     @gpc_pharmadepot_price_decor
-    def __get_prices(self, wait):
+    def get_prices(self, wait):
         return super().get_prices(wait)
 
 
@@ -237,7 +239,7 @@ class Aversi(Pharmacy):
                      pharmacy=self.__pharmacy, link=links[i], country=countries[i]))
 
     @aversi_price_decor
-    def __get_prices(self, wait):
+    def get_prices(self, wait):
         return super().get_prices(wait)
 
     # def get_countries(self, wait):

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dazoge</title>
+    <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+        {% for info in infos %}
+            <h4>Pharmacy : {{ info['Pharmacy'] }}</h4>
+            <h4>Name : {{ info['Name'] }}</h4>
+            <h4>Country : {{ info['Country'] }}</h4>
+            <h4>Price : {{ info['Price'] }}</h4>
+        <a href="{{ info['Link']}}">
+            <img src="{{ info['Photo Source']}}" alt="dsadada" >
+            </a>
+        {% endfor %}
+</body>
+</html>
