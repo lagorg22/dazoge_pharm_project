@@ -1,6 +1,7 @@
 import json
 from pharm import GPC, PSP, Pharmadepot, Aversi
 from flask import Flask, render_template, request
+
 import pandas as pd
 
 with open('paths.json', 'r', encoding='utf-8') as file:
@@ -37,7 +38,7 @@ def search():
     items_infos = sorted(items_infos, key=lambda x: x['Price'])
     return render_template('index.html', infos=items_infos)
 
-
+#
 if __name__ == '__main__':
     app.run(debug=True)
 

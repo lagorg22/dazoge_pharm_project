@@ -77,15 +77,19 @@ class Pharmacy:
 
         wait = WebDriverWait(self.driver, 10)
         while True:
-            names = self.get_names(wait)
-            countries = self.get_countries(wait)  # problem with psp
-            prices = self.get_prices(wait)
-            photo_sources = self.get_photos(wait)
-            links = self.get_links(wait)
-            self.fill_items(names, prices, photo_sources, links, countries)
-            if not self.go_to_next_page():
+            try:
+                names = self.get_names(wait)
+                countries = self.get_countries(wait)  # problem with psp
+                prices = self.get_prices(wait)
+                photo_sources = self.get_photos(wait)
+                links = self.get_links(wait)
+                self.fill_items(names, prices, photo_sources, links, countries)
+                if not self.go_to_next_page():
+                    break
+                self.count += len(prices)
+            except TimeoutException:
+                self.driver.close()
                 break
-        self.count += len(prices)
 
     def show_items(self, word):
         if not self.count:
@@ -200,19 +204,24 @@ class PSP(Pharmacy):
 
         for i in range(1, max_page + 1):
             i = str(i)
-            next_page = WebDriverWait(self.driver, 10).until(
-                ec.element_to_be_clickable((By.XPATH, f"//li[text()={i}]")))
-            self.driver.execute_script("arguments[0].click();", next_page)
-            time.sleep(2)
-            self.__scroll(2)
-
-            names = self.get_names(wait)
-            countries = self.get_countries(wait)  # problem with psp
-            prices = self.get_prices(wait)
-            photo_sources = self.get_photos(wait)
-            links = self.get_links(wait)
-            self.fill_items(names, prices, photo_sources, links, countries)
-            self.count += len(prices)
+            try:
+                next_page = WebDriverWait(self.driver, 10).until(
+                    ec.element_to_be_clickable((By.XPATH, f"//li[text()={i}]")))
+                self.driver.execute_script("arguments[0].click();", next_page)
+                time.sleep(2)
+                self.__scroll(2)
+                try:
+                    names = self.get_names(wait)
+                    countries = self.get_countries(wait)  # problem with psp
+                    prices = self.get_prices(wait)
+                    photo_sources = self.get_photos(wait)
+                    links = self.get_links(wait)
+                    self.fill_items(names, prices, photo_sources, links, countries)
+                    self.count += len(prices)
+                except:
+                    pass
+            except:
+                pass
         self.driver.close()
 
 
