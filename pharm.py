@@ -10,29 +10,26 @@ from item_cls import Item
 
 
 class Pharmacy:
-    def __init__(self, website, search_box_xpath, photo_xpath,
-                 name_xpath, price_xpath, country_xpath, link_xpath):
+    def __init__(self, search_url, photo_xpath,
+                 name_xpath, price_xpath, country_xpath, link_xpath, pharmacy):
         edge_options = webdriver.EdgeOptions()
         # edge_options.add_argument("--headless")
-        # edge_options.add_argument("--disable-gpu")
         edge_options.add_experimental_option('detach', True)
         self.driver = webdriver.Edge(options=edge_options)
-        self.website = website
-        self.search_box_xpath = search_box_xpath
+        self.search_url: str = search_url
         self.photo_xpath = photo_xpath
         self.name_xpath = name_xpath
         self.price_xpath = price_xpath
         self.country_xpath = country_xpath
         self.link_xpath = link_xpath
-        self.items = []
+        self.pharmacy = pharmacy
+        self.items: list[Item] = []
         self.count = 0
 
-    def search_word(self, word):
-        search_box = WebDriverWait(self.driver, 10).until(
-            ec.presence_of_element_located((By.XPATH, self.search_box_xpath)))
-        search_box.send_keys(word)
-        search_box.send_keys(Keys.RETURN)
-        time.sleep(5)
+    def search_word(self, word, page_num):
+        self.driver.get(self.search_url.replace('replace_with_actual_word', word)
+                        .replace('replace_with_actual_page_number', str(page_num)))
+        time.sleep(3)
 
     def get_names(self, wait):
         return [name.text for name in wait.until(ec.presence_of_all_elements_located((By.XPATH, self.name_xpath)))]
@@ -53,43 +50,31 @@ class Pharmacy:
         return [price.text for price in wait.until(ec.presence_of_all_elements_located((By.XPATH, self.price_xpath)))]
 
     def fill_items(self, names, prices, photo_sources, links, countries):
+        print(len(names), len(countries), sep='----')
         for i in range(len(prices)):
             self.items.append(
                 Item(name=names[i], price=prices[i], photo_source=photo_sources[i],
-                     pharmacy='-', link=links[i], country=countries[i]))
+                     pharmacy=self.pharmacy, link=links[i], country=countries[i]))
 
-    def go_to_next_page(self):
-        try:
-            next_button = self.driver.find_element(by=By.CSS_SELECTOR, value='button[title="შემდეგი"]')
-        except NoSuchElementException:
-            self.driver.close()
-            return False
-        self.driver.execute_script("arguments[0].click();", next_button)
-        time.sleep(3)
-        return True
 
     def search_for_items(self, word: str):
-        self.driver.get(self.website)
-
-        time.sleep(2)
-
-        self.search_word(word)
-
         wait = WebDriverWait(self.driver, 10)
+        page_num = 1
         while True:
             try:
+                self.search_word(word, page_num)
                 names = self.get_names(wait)
                 countries = self.get_countries(wait)  # problem with psp
                 prices = self.get_prices(wait)
                 photo_sources = self.get_photos(wait)
                 links = self.get_links(wait)
                 self.fill_items(names, prices, photo_sources, links, countries)
-                if not self.go_to_next_page():
-                    break
                 self.count += len(prices)
-            except TimeoutException:
+            except (TimeoutException, NoSuchElementException):
                 self.driver.close()
                 break
+            finally:
+                page_num += 1
 
     def show_items(self, word):
         if not self.count:
@@ -107,17 +92,11 @@ def gpc_pharmadepot_price_decor(function):
 
 
 class GPC(Pharmacy):
-    def __init__(self, website, search_box_xpath, photo_xpath,
-                 name_xpath, price_xpath, country_xpath, link_xpath):
-        super().__init__(website, search_box_xpath, photo_xpath,
-                         name_xpath, price_xpath, country_xpath, link_xpath)
-        self.__pharmacy = 'GPC'
+    def __init__(self, search_url, photo_xpath,
+                 name_xpath, price_xpath, country_xpath, link_xpath, pharmacy):
+        super().__init__(search_url, photo_xpath,
+                         name_xpath, price_xpath, country_xpath, link_xpath, pharmacy)
 
-    def fill_items(self, names, prices, photo_sources, links, countries):
-        for i in range(len(prices)):
-            self.items.append(
-                Item(name=names[i], price=prices[i], photo_source=photo_sources[i],
-                     pharmacy=self.__pharmacy, link=links[i], country=countries[i]))
 
     @gpc_pharmadepot_price_decor
     def get_prices(self, wait):
@@ -125,17 +104,11 @@ class GPC(Pharmacy):
 
 
 class Pharmadepot(Pharmacy):
-    def __init__(self, website, search_box_xpath, photo_xpath,
-                 name_xpath, price_xpath, country_xpath, link_xpath):
-        super().__init__(website, search_box_xpath, photo_xpath,
-                         name_xpath, price_xpath, country_xpath, link_xpath)
-        self.__pharmacy = 'Pharmadepot'
+    def __init__(self, search_url, photo_xpath,
+                 name_xpath, price_xpath, country_xpath, link_xpath, pharmacy):
+        super().__init__(search_url, photo_xpath,
+                         name_xpath, price_xpath, country_xpath, link_xpath, pharmacy)
 
-    def fill_items(self, names, prices, photo_sources, links, countries):
-        for i in range(len(prices)):
-            self.items.append(
-                Item(name=names[i], price=prices[i], photo_source=photo_sources[i],
-                     pharmacy=self.__pharmacy, link=links[i], country=countries[i]))
 
     @gpc_pharmadepot_price_decor
     def get_prices(self, wait):
@@ -152,20 +125,10 @@ def psp_price_decor(function):
 
 
 class PSP(Pharmacy):
-    def __init__(self, website, search_box_xpath, photo_xpath,
-                 name_xpath, price_xpath, country_xpath, link_xpath):
-        super().__init__(website, search_box_xpath, photo_xpath,
-                         name_xpath, price_xpath, country_xpath, link_xpath)
-        self.__pharmacy = 'PSP'
-
-    def fill_items(self, names, prices, photo_sources, links, countries):
-        for i in range(len(prices)):
-            self.items.append(
-                Item(name=names[i], price=prices[i], photo_source=photo_sources[i],
-                     pharmacy=self.__pharmacy, link=links[i], country='-'))
-
-    def get_countries(self, wait):
-        return ['-' * self.count]
+    def __init__(self, search_url, photo_xpath,
+                 name_xpath, price_xpath, country_xpath, link_xpath, pharmacy):
+        super().__init__(search_url, photo_xpath,
+                         name_xpath, price_xpath, country_xpath, link_xpath, pharmacy)
 
     @psp_price_decor
     def get_prices(self, wait):
@@ -188,41 +151,24 @@ class PSP(Pharmacy):
         time.sleep(1)
 
     def search_for_items(self, word: str):
-        self.driver.get(self.website)
-
-        time.sleep(2)
-
-        self.search_word(word)
-
         wait = WebDriverWait(self.driver, 10)
-        max_page = 1
-        try:
-            max_page = max([int(num.text) for num in WebDriverWait(self.driver, 10).until(
-                ec.presence_of_all_elements_located((By.CSS_SELECTOR, 'li[class="number"]')))])
-        except TimeoutException:
-            pass
-
-        for i in range(1, max_page + 1):
-            i = str(i)
+        page_num = 1
+        while True:
             try:
-                next_page = WebDriverWait(self.driver, 10).until(
-                    ec.element_to_be_clickable((By.XPATH, f"//li[text()={i}]")))
-                self.driver.execute_script("arguments[0].click();", next_page)
-                time.sleep(2)
-                self.__scroll(2)
-                try:
-                    names = self.get_names(wait)
-                    countries = self.get_countries(wait)  # problem with psp
-                    prices = self.get_prices(wait)
-                    photo_sources = self.get_photos(wait)
-                    links = self.get_links(wait)
-                    self.fill_items(names, prices, photo_sources, links, countries)
-                    self.count += len(prices)
-                except:
-                    pass
-            except:
-                pass
-        self.driver.close()
+                self.search_word(word, page_num)
+                self.__scroll(4)
+                names = self.get_names(wait)
+                countries = ['-'] * len(names)
+                prices = self.get_prices(wait)
+                photo_sources = self.get_photos(wait)
+                links = self.get_links(wait)
+                self.fill_items(names, prices, photo_sources, links, countries)
+                self.count += len(prices)
+            except (TimeoutException, NoSuchElementException):
+                self.driver.close()
+                break
+            finally:
+                page_num += 1
 
 
 def aversi_price_decor(function):
@@ -235,17 +181,11 @@ def aversi_price_decor(function):
 
 
 class Aversi(Pharmacy):
-    def __init__(self, website, search_box_xpath, photo_xpath,
-                 name_xpath, price_xpath, country_xpath, link_xpath):
-        super().__init__(website, search_box_xpath, photo_xpath,
-                         name_xpath, price_xpath, country_xpath, link_xpath)
-        self.__pharmacy = 'Aversi'
+    def __init__(self, search_url, photo_xpath,
+                 name_xpath, price_xpath, country_xpath, link_xpath, pharmacy):
+        super().__init__(search_url, photo_xpath,
+                         name_xpath, price_xpath, country_xpath, link_xpath, pharmacy)
 
-    def fill_items(self, names, prices, photo_sources, links, countries):
-        for i in range(len(prices)):
-            self.items.append(
-                Item(name=names[i], price=prices[i], photo_source=photo_sources[i],
-                     pharmacy=self.__pharmacy, link=links[i], country=countries[i]))
 
     @aversi_price_decor
     def get_prices(self, wait):
@@ -273,13 +213,3 @@ class Aversi(Pharmacy):
             except:
                 countries.append('-')
         return countries
-
-    def go_to_next_page(self):
-        try:
-            next_button = self.driver.find_element(by=By.CSS_SELECTOR, value='a[rel="next"]')
-        except NoSuchElementException:
-            self.driver.close()
-            return False
-        self.driver.execute_script("arguments[0].click();", next_button)
-        time.sleep(3)
-        return True

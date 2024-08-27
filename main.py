@@ -1,19 +1,52 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
-import time
-import random
-from item_cls import Item
+import json
+from pharm import GPC, PSP, Pharmadepot, Aversi
+from flask import Flask, render_template, request
 
-edge_options = webdriver.EdgeOptions()
-edge_options.add_experimental_option('detach', True)
+# import pandas as pd
 
-driver = webdriver.Edge(options=edge_options)
+with open('paths.json', 'r', encoding='utf-8') as file:
+    data = json.load(file)
 
-driver.get('https://psp.ge/catalogsearch/result?q=ana')
-# print(len())
-max_page = max([int(num.text) for num in WebDriverWait(driver, 10).until(ec.presence_of_all_elements_located((By.CSS_SELECTOR, 'li[class="number"]')))])
-print(max_page)
+
+def get_inputs(pharmacy):
+    d = data[pharmacy]
+    return [d['search_url'], d['photo_xpath'], d['name_xpath'], d['price_xpath'], d['country_xpath'], d['link_xpath']]
+
+
+app = Flask(__name__)
+
+
+@app.route('/')
+def home():
+    return render_template('home.html', infos=[])
+
+
+@app.route('/search', methods=['POST'])
+def search():
+    word = request.form.get('search_term')
+
+    gp = GPC(*get_inputs('gpc'), pharmacy='GPC')
+    gpc_infos = gp.show_items(word)
+
+    ps = PSP(*get_inputs('psp'), pharmacy='PSP')
+    ps_infos = ps.show_items(word)
+
+    ph = Pharmadepot(*get_inputs('pharmadepot'), pharmacy='Pharmadepot')
+    ph_infos = ph.show_items(word)
+
+    av = Aversi(*get_inputs('aversi'), pharmacy='Aversi')
+    av_infos = av.show_items(word)
+
+    items_infos = gpc_infos + av_infos + ph_infos + ps_infos
+
+    items_infos = sorted(items_infos, key=lambda x: x['Price'])
+
+    return render_template('index.html', infos=items_infos)
+
+#
+if __name__ == '__main__':
+    app.run(debug=True)
+
+# av = Aversi(*get_inputs('aversi'))
+# av_infos = av.show_items('ana')
+# print(av_infos)
