@@ -1,5 +1,6 @@
 import json
 from pharm import GPC, PSP, Pharmadepot, Aversi
+# from fastPharm import GPC, Pharmadepot
 from flask import Flask, render_template, request
 import concurrent.futures
 import functools
@@ -25,7 +26,9 @@ def search():
     items_infos = []
     partial_get_info = functools.partial(get_info, word=word, items_info=items_infos)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(partial_get_info, ['GPC', 'PSP', 'Pharmadepot', 'Aversi'])
+        executor.map(partial_get_info, [ 'GPC', 'Pharmadepot', 'PSP'])
+
+    items_infos = sorted(items_infos, key=lambda x: x['Price'])
 
     return render_template('index.html', infos=items_infos)
 

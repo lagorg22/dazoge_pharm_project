@@ -7,15 +7,14 @@ from selenium.webdriver.support import expected_conditions as ec
 import time
 import random
 from item_cls import Item
+import concurrent.futures
+import functools
 
 
 class Pharmacy:
     def __init__(self, search_url, photo_xpath,
                  name_xpath, price_xpath, country_xpath, link_xpath, pharmacy):
-        edge_options = webdriver.EdgeOptions()
-        # edge_options.add_argument("--headless")
-        edge_options.add_experimental_option('detach', True)
-        self.driver = webdriver.Edge(options=edge_options)
+
         self.search_url: str = search_url
         self.photo_xpath = photo_xpath
         self.name_xpath = name_xpath
@@ -26,8 +25,8 @@ class Pharmacy:
         self.items: list[Item] = []
         self.count = 0
 
-    def search_word(self, word, page_num):
-        self.driver.get(self.search_url.replace('replace_with_actual_word', word)
+    def search_word(self, word, page_num, driver):
+        driver.get(self.search_url.replace('replace_with_actual_word', word)
                         .replace('replace_with_actual_page_number', str(page_num)))
         time.sleep(3)
 
@@ -50,36 +49,39 @@ class Pharmacy:
         return [price.text for price in wait.until(ec.presence_of_all_elements_located((By.XPATH, self.price_xpath)))]
 
     def fill_items(self, names, prices, photo_sources, links, countries):
-        print(len(names), len(countries), sep='----')
         for i in range(len(prices)):
             self.items.append(
                 Item(name=names[i], price=prices[i], photo_source=photo_sources[i],
                      pharmacy=self.pharmacy, link=links[i], country=countries[i]))
 
 
-    def search_for_items(self, word: str):
-        wait = WebDriverWait(self.driver, 10)
-        page_num = 1
-        while True:
-            try:
-                self.search_word(word, page_num)
-                names = self.get_names(wait)
-                countries = self.get_countries(wait)  # problem with psp
-                prices = self.get_prices(wait)
-                photo_sources = self.get_photos(wait)
-                links = self.get_links(wait)
-                self.fill_items(names, prices, photo_sources, links, countries)
-                self.count += len(prices)
-            except (TimeoutException, NoSuchElementException):
-                self.driver.close()
-                break
-            finally:
-                page_num += 1
+    def search_for_items(self, page_num, word: str):
+        edge_options = webdriver.EdgeOptions()
+        edge_options.add_argument("--headless")
+        edge_options.add_experimental_option('detach', True)
+        driver = webdriver.Edge(options=edge_options)
+        wait = WebDriverWait(driver, 10)
+        try:
+            self.search_word(word, page_num, driver)
+            names = self.get_names(wait)
+            countries = self.get_countries(wait)  # problem with psp
+            prices = self.get_prices(wait)
+            photo_sources = self.get_photos(wait)
+            links = self.get_links(wait)
+            self.fill_items(names, prices, photo_sources, links, countries)
+            self.count += len(prices)
+        except (TimeoutException, NoSuchElementException):
+            driver.close()
+        finally:
+            driver.close()
 
     def show_items(self, word):
         if not self.count:
-            self.search_for_items(word)
+            partial_search = functools.partial(self.search_for_items, word=word)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                executor.map(partial_search, range(1, 6))
         return [item.get_info() for item in self.items]
+
 
 
 def gpc_pharmadepot_price_decor(function):
@@ -134,41 +136,43 @@ class PSP(Pharmacy):
     def get_prices(self, wait):
         return super().get_prices(wait)
 
-    def __scroll(self, max_scroll_time=30):
+    def __scroll(self, driver, max_scroll_time=30,):
         start_time = time.time()
-        total_height = self.driver.execute_script("return document.body.scrollHeight")
+        total_height = driver.execute_script("return document.body.scrollHeight")
         scrolled = 0
 
         while scrolled < total_height and time.time() - start_time < max_scroll_time:
             # Scroll a random amount between 100 and 200 pixels
             scroll_amount = random.randint(100, 200)
-            self.driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+            driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
             scrolled += scroll_amount
-            total_height = self.driver.execute_script("return document.body.scrollHeight")
+            total_height = driver.execute_script("return document.body.scrollHeight")
 
         # Final scroll to bottom to ensure we've reached the end
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(1)
 
-    def search_for_items(self, word: str):
-        wait = WebDriverWait(self.driver, 10)
+    def search_for_items(self, page_num, word: str):
+        edge_options = webdriver.EdgeOptions()
+        edge_options.add_argument("--headless")
+        edge_options.add_experimental_option('detach', True)
+        driver = webdriver.Edge(options=edge_options)
+        wait = WebDriverWait(driver, 10)
         page_num = 1
-        while True:
-            try:
-                self.search_word(word, page_num)
-                self.__scroll(4)
-                names = self.get_names(wait)
-                countries = ['-'] * len(names)
-                prices = self.get_prices(wait)
-                photo_sources = self.get_photos(wait)
-                links = self.get_links(wait)
-                self.fill_items(names, prices, photo_sources, links, countries)
-                self.count += len(prices)
-            except (TimeoutException, NoSuchElementException):
-                self.driver.close()
-                break
-            finally:
-                page_num += 1
+        try:
+            self.search_word(word, page_num, driver)
+            self.__scroll(driver, 5)
+            names = self.get_names(wait)
+            countries = ['-'] * len(names)
+            prices = self.get_prices(wait)
+            photo_sources = self.get_photos(wait)
+            links = self.get_links(wait)
+            self.fill_items(names, prices, photo_sources, links, countries)
+            self.count += len(prices)
+        except (TimeoutException, NoSuchElementException):
+            driver.close()
+        finally:
+            driver.close()
 
 
 def aversi_price_decor(function):
@@ -199,7 +203,7 @@ class Aversi(Pharmacy):
         while True:
             try:
                 curr_path = f'{elems_xpath}[{i}]'
-                elem = self.driver.find_element(By.XPATH, curr_path)
+                elem = wait.until(ec.presence_of_element_located((By.XPATH, curr_path)))
             except:
                 break
             valid_paths.append(curr_path)
@@ -208,7 +212,7 @@ class Aversi(Pharmacy):
         for path in valid_paths:
             country = ''
             try:
-                country = self.driver.find_element(By.XPATH, f'{path}/div/div[2]/a/div[2]')
+                country = wait.until(ec.presence_of_element_located((By.XPATH, f'{path}/div/div[2]/a/div[2]')))
                 countries.append(country.text.replace('ქვეყანა ', ''))
             except:
                 countries.append('-')
