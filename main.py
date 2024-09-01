@@ -26,7 +26,7 @@ def search():
     items_infos = []
     partial_get_info = functools.partial(get_info, word=word, items_info=items_infos)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(partial_get_info, [ 'GPC', 'Pharmadepot', 'PSP'])
+        executor.map(partial_get_info, ['Pharmadepot', 'GPC', 'PSP'])
 
     items_infos = sorted(items_infos, key=lambda x: x['Price'])
 

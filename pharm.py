@@ -58,16 +58,25 @@ class Pharmacy:
     def search_for_items(self, page_num, word: str):
         edge_options = webdriver.EdgeOptions()
         edge_options.add_argument("--headless")
+        edge_options.add_argument("--disable-gpu")
         edge_options.add_experimental_option('detach', True)
         driver = webdriver.Edge(options=edge_options)
         wait = WebDriverWait(driver, 10)
+        methods = [
+            self.get_names,
+            self.get_prices,
+            self.get_photos,
+            self.get_links,
+            self.get_countries,
+        ]
+        def call_method(method):
+            return method(wait)
+
         try:
             self.search_word(word, page_num, driver)
-            names = self.get_names(wait)
-            countries = self.get_countries(wait)  # problem with psp
-            prices = self.get_prices(wait)
-            photo_sources = self.get_photos(wait)
-            links = self.get_links(wait)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                results = list(executor.map(call_method, methods))
+            names, prices, photo_sources, links, countries = results
             self.fill_items(names, prices, photo_sources, links, countries)
             self.count += len(prices)
         except (TimeoutException, NoSuchElementException):
@@ -79,7 +88,7 @@ class Pharmacy:
         if not self.count:
             partial_search = functools.partial(self.search_for_items, word=word)
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                executor.map(partial_search, range(1, 6))
+                executor.map(partial_search, range(1, 3))
         return [item.get_info() for item in self.items]
 
 
@@ -136,37 +145,41 @@ class PSP(Pharmacy):
     def get_prices(self, wait):
         return super().get_prices(wait)
 
-    def __scroll(self, driver, max_scroll_time=30,):
-        start_time = time.time()
-        total_height = driver.execute_script("return document.body.scrollHeight")
-        scrolled = 0
+    def __scroll(self, driver, scroll_pause_time=0.05, scroll_distance=250):
+        while True:
+            driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
+            time.sleep(scroll_pause_time)
+            last_height = driver.execute_script("return document.body.scrollHeight")
+            driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
+            new_height = driver.execute_script("return document.body.scrollHeight")
 
-        while scrolled < total_height and time.time() - start_time < max_scroll_time:
-            # Scroll a random amount between 100 and 200 pixels
-            scroll_amount = random.randint(100, 200)
-            driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
-            scrolled += scroll_amount
-            total_height = driver.execute_script("return document.body.scrollHeight")
-
-        # Final scroll to bottom to ensure we've reached the end
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(1)
+            if new_height == last_height:
+                break
 
     def search_for_items(self, page_num, word: str):
         edge_options = webdriver.EdgeOptions()
         edge_options.add_argument("--headless")
+        edge_options.add_argument("--disable-gpu")
         edge_options.add_experimental_option('detach', True)
         driver = webdriver.Edge(options=edge_options)
         wait = WebDriverWait(driver, 10)
-        page_num = 1
+        methods = [
+            self.get_names,
+            self.get_prices,
+            self.get_photos,
+            self.get_links,
+        ]
+
+        def call_method(method):
+            return method(wait)
+
         try:
             self.search_word(word, page_num, driver)
-            self.__scroll(driver, 5)
-            names = self.get_names(wait)
+            self.__scroll(driver)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                results = list(executor.map(call_method, methods))
+            names, prices, photo_sources, links = results
             countries = ['-'] * len(names)
-            prices = self.get_prices(wait)
-            photo_sources = self.get_photos(wait)
-            links = self.get_links(wait)
             self.fill_items(names, prices, photo_sources, links, countries)
             self.count += len(prices)
         except (TimeoutException, NoSuchElementException):
