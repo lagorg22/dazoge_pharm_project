@@ -1,14 +1,13 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 import time
-import random
 from item_cls import Item
 import concurrent.futures
 import functools
+
 
 
 class Pharmacy:
@@ -145,16 +144,16 @@ class PSP(Pharmacy):
     def get_prices(self, wait):
         return super().get_prices(wait)
 
-    def __scroll(self, driver, scroll_pause_time=0.05, scroll_distance=250):
-        while True:
-            driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
-            time.sleep(scroll_pause_time)
-            last_height = driver.execute_script("return document.body.scrollHeight")
-            driver.execute_script(f"window.scrollBy(0, {scroll_distance});")
-            new_height = driver.execute_script("return document.body.scrollHeight")
+    def __scroll(self, driver):
+        total_height = driver.execute_script("return document.body.scrollHeight")
 
-            if new_height == last_height:
-                break
+        steps = 50
+        scroll_time = 2
+        time_per_step = scroll_time / steps
+
+        for i in range(steps):
+            driver.execute_script(f"window.scrollTo(0, {(total_height / steps) * (i + 1)});")
+            time.sleep(time_per_step)
 
     def search_for_items(self, page_num, word: str):
         edge_options = webdriver.EdgeOptions()
