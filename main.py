@@ -1,39 +1,107 @@
+import requests
 import json
-from pharm import GPC, PSP, Pharmadepot, Aversi
-from flask import Flask, render_template, request
-import concurrent.futures
-import functools
 
+class Item:
+    def __init__(self, pharmacy: str, name: str, price: float, photo_source: str, country: str, old_price):
+        self.__name = name
+        self.__price = price
+        self.__old_price = old_price
+        self.__photo_source = photo_source
+        self.__country = country
+        self.__pharmacy = pharmacy
 
-with open('paths.json', 'r', encoding='utf-8') as file:
-    data = json.load(file)
+    def get_pharmacy(self):
+        return self.__pharmacy
 
-def get_inputs(pharmacy):
-    d = data[pharmacy]
-    return [d['search_url'], d['photo_xpath'], d['name_xpath'], d['price_xpath'], d['country_xpath'], d['link_xpath']]
+    def get_country(self):
+        return self.__country
 
-app = Flask(__name__)
+    def get_name(self):
+        return self.__name
 
-@app.route('/')
-def home():
-    return render_template('home.html', infos=[])
+    def get_price(self):
+        return self.__price
 
+    def get_photo_source(self):
+        return self.__photo_source
 
-@app.route('/search', methods=['POST'])
-def search():
-    word = request.form.get('search_term')
-    items_infos = []
-    partial_get_info = functools.partial(get_info, word=word, items_info=items_infos)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(partial_get_info, ['Pharmadepot', 'GPC', 'PSP', 'Aversi'])
+    def get_old_price(self):
+        return self.__old_price
 
-    items_infos = sorted(items_infos, key=lambda x: x['Price'])
+    def get_info(self):
+        return {'Pharmacy': self.get_pharmacy(),
+                'Name': self.get_name(),
+                'Country': self.get_country(),
+                'Price': self.get_price(),
+                'Old Price': self.get_old_price(),
+                'Photo Source': self.get_photo_source(),
+                }
 
-    return render_template('index.html', infos=items_infos)
+# params = {"input_text": "დიაზეპამი", "page": "1"}
+#
+# url = 'https://gpcbackendprod.gepha.com/ka/web/medicaments/search'
+# response = requests.post(url, params=params)
+# print(response.json()['data']['search_result'][0])
 
-def get_info(obj, word, items_info):
-    o = globals()[obj](*get_inputs(obj.lower()), pharmacy=obj)
-    items_info.extend(o.show_items(word))
+# params = {"input_text": "panadol", "page": "1"}
+#
+# url = 'https://pharmbackend-prod.gepha.com/ka/web/medicaments/search'
+# response = requests.post(url, params=params)
+# print(response.json()['data']['search_result'][0])
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# params = {"page": "1", "currentPage": "1", "search": "ana", "query": "ana"}
+#
+# url = 'https://psp.ge/product/list'
+# response = requests.get(url, params=params)
+# print(response.json()['data']['items'][0])
+#
+# params = {'match': 'all',
+#           'search_performed': 'Y',
+#           'q': 'საფენი',
+#           'dispatch': 'products.search',
+#           'page': '8',
+#           'sl': 'ka',
+#           'is_ajax':'1'}
+#
+# url = 'https://shop.aversi.ge/index.php'
+# response = requests.get(url, params=params)
+# print(response.json()['cp_gtm']['view_products'])
+
+pharm_data = {
+    'GPC': {
+        'url': 'https://gpcbackendprod.gepha.com/ka/web/medicaments/search',
+        'params': {
+            "input_text": "TEXT",
+            "page": "PAGE"
+        }
+    },
+    'Pharmadepot': {
+        'url': 'https://pharmbackend-prod.gepha.com/ka/web/medicaments/search',
+        'params': {
+            "input_text": "TEXT",
+            "page": "PAGE"
+        }
+    },
+    'PSP': {
+        'url' : 'https://psp.ge/product/list',
+        'params': {
+            "page": "PAGE",
+            "currentPage": "PAGE",
+            "search": "TEXT",
+            "query": "TEXT"
+        }
+    },
+    'Aversi': {
+        'url': 'https://shop.aversi.ge/index.php',
+        'params': {
+
+            'match': 'all',
+            'search_performed': 'Y',
+            'q': 'TEXT',
+            'dispatch': 'products.search',
+            'page': 'PAGE',
+            'sl': 'ka',
+            'is_ajax':'1'
+        }
+    }
+}
